@@ -23,25 +23,27 @@ namespace Network
 			_networkRunner = networkRunner;
 		}
 
-		public void SpawnPlayer()
+		public NetworkObject SpawnPlayer()
 		{
 			if (_networkRunner == null)
 			{
 				Debug.LogError("Cannot spawn player: NetworkRunner not initialized");
-				return;
+				return null;
 			}
 
 			// Generate random position within spawn area
-			float randomX = Random.Range(-spawnAreaSize.x * 0.5f, spawnAreaSize.x * 0.5f);
-			float randomZ = Random.Range(-spawnAreaSize.y * 0.5f, spawnAreaSize.y * 0.5f);
-			Vector3 spawnPosition = new Vector3(randomX, spawnHeight, randomZ);
+			var randomX = Random.Range(-spawnAreaSize.x * 0.5f, spawnAreaSize.x * 0.5f);
+			var randomZ = Random.Range(-spawnAreaSize.y * 0.5f, spawnAreaSize.y * 0.5f);
+			var spawnPosition = new Vector3(randomX, spawnHeight, randomZ);
 
 			// Random rotation around Y axis
-			Quaternion spawnRotation = Quaternion.Euler(0, Random.Range(0f, 360f), 0);
+			var spawnRotation = Quaternion.Euler(0, Random.Range(0f, 360f), 0);
 
 			// Spawn player
 			var player = _networkRunner.Spawn(playerPrefabRef, spawnPosition, spawnRotation, _networkRunner.LocalPlayer);
 			CameraController.Instance.SetFollowTarget(player.transform);
+
+			return player;
 		}
 		#endregion
 

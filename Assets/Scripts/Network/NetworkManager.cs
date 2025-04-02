@@ -20,6 +20,11 @@ namespace Network
 		[SerializeField] private SpawnManager spawnManager;
 		#endregion
 
+		#region Public Fields
+
+		public NetworkObject LocalCharacter { get; private set; }
+		#endregion
+
 		#region Private Fields
 		private NetworkRunner _networkRunner;
 		private bool _isConnecting;
@@ -82,10 +87,10 @@ namespace Network
 				}
 				else
 				{
-					throw new System.Exception($"Failed to start game: {result.ShutdownReason}");
+					throw new Exception($"Failed to start game: {result.ShutdownReason}");
 				}
 			}
-			catch (System.Exception e)
+			catch (Exception e)
 			{
 				Debug.LogError($"Network error: {e.Message}");
 				OnConnectionError?.Invoke(e.Message);
@@ -102,7 +107,7 @@ namespace Network
 		{
 			if (spawnManager != null)
 			{
-				spawnManager.SpawnPlayer();
+				LocalCharacter = spawnManager.SpawnPlayer();
 			}
 			else
 			{
