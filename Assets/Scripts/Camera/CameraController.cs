@@ -17,6 +17,17 @@ namespace Camera
 		[Header("Follow Settings")]
 		[SerializeField] private Vector3 followOffset = new Vector3(0, 5, -10);
 		[SerializeField] private float followDamping = 2f;
+		[SerializeField] private float positionSmoothTime = 0.1f;
+		[SerializeField] private float rotationSmoothTime = 0.1f;
+		#endregion
+
+		#region Private Fields
+		private float _currentVerticalAngle;
+		private float _targetVerticalAngle;
+		private CinemachineTransposer _transposer;
+		private Vector3 _currentVelocity;
+		private float _currentRotationVelocity;
+		private Vector3 _currentOffset;
 		#endregion
 
 		#region Unity Lifecycle
@@ -31,18 +42,53 @@ namespace Camera
 			Instance = this;
 			DontDestroyOnLoad(gameObject);
 
-			// Set initial virtual camera settings
+			InitializeVirtualCamera();
+		}
+
+		private void Update()
+		{
+			HandleCameraRotation();
+		}
+		#endregion
+
+		#region Private Methods
+		private void InitializeVirtualCamera()
+		{
 			if (VirtualCamera != null)
 			{
-				var transposer = VirtualCamera.GetCinemachineComponent<CinemachineTransposer>();
-				if (transposer != null)
+				_transposer = VirtualCamera.GetCinemachineComponent<CinemachineTransposer>();
+				if (_transposer != null)
 				{
-					transposer.m_FollowOffset = followOffset;
-					transposer.m_XDamping = followDamping;
-					transposer.m_YDamping = followDamping;
-					transposer.m_ZDamping = followDamping;
+					_transposer.m_FollowOffset = followOffset;
+					_transposer.m_XDamping = followDamping;
+					_transposer.m_YDamping = followDamping;
+					_transposer.m_ZDamping = followDamping;
+					_currentOffset = followOffset;
 				}
 			}
+		}
+
+		private void HandleCameraRotation()
+		{
+			if (_transposer == null) return;
+
+			_currentVerticalAngle = Mathf.SmoothDamp(
+				_currentVerticalAngle,
+				_targetVerticalAngle,
+				ref _currentRotationVelocity,
+				rotationSmoothTime
+			);
+
+			var rotation = Quaternion.Euler(_currentVerticalAngle, 0, 0);
+			var targetOffset = rotation * new Vector3(0, followOffset.y, followOffset.z);
+
+			_currentOffset = Vector3.SmoothDamp(
+				_currentOffset,
+				targetOffset,
+				ref _currentVelocity,
+				positionSmoothTime
+			);
+			_transposer.m_FollowOffset = _currentOffset;
 		}
 		#endregion
 

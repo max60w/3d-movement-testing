@@ -6,12 +6,10 @@ namespace Gameplay
 {
     public class PlayerController : NetworkBehaviour
     {
-        #region Animation Parameter Hashes
-        private static readonly int SpeedHash = Animator.StringToHash("Speed");
-        private static readonly int JumpHash = Animator.StringToHash("Jump");
-        private static readonly int GroundedHash = Animator.StringToHash("Grounded");
-        private static readonly int FreeFallHash = Animator.StringToHash("FreeFall");
-        private static readonly int MotionSpeedHash = Animator.StringToHash("MotionSpeed");
+        #region Network Variables
+        [Networked] private float NetworkedWeight { get; set; }
+        [Networked] private Vector3 NetworkedPosition { get; set; }
+        [Networked] private Quaternion NetworkedRotation { get; set; }
         #endregion
 
         #region Serialized Fields
@@ -20,129 +18,255 @@ namespace Gameplay
         [SerializeField] private float sprintMultiplier = 1.6f;
         [SerializeField] private float rotationSpeed = 10f;
         [SerializeField] private float jumpForce = 5f;
-        [SerializeField] private float movementAnimationMultiplier = 2f; // Multiplier for movement animation speed
+        [SerializeField] private float movementAnimationMultiplier = 2f;
+
+        [Header("Interpolation Settings")]
+        [SerializeField] private float positionInterpolationSpeed = 15f;
+        [SerializeField] private float rotationInterpolationSpeed = 15f;
+        [SerializeField] private float movementInterpolationSpeed = 15f;
+
+        [Header("Ground Settings")]
+        [SerializeField] private float groundOffset = 0.1f; // How far above the ground the player should float
+        [SerializeField] private float groundCheckDistance = 0.2f; // Distance to check for ground
+        [SerializeField] private LayerMask groundLayer = -1; // Layer mask for ground detection
+
+        [Header("Weight Settings")]
+        [SerializeField] private float baseWeight = 70f; // Base weight in kg
+        [SerializeField] private float weightInfluenceOnSpeed = 0.5f; // How much weight affects movement speed
+        [SerializeField] private float weightInfluenceOnJump = 0.7f; // How much weight affects jump force
+        [SerializeField] private float weightInfluenceOnGravity = 0.3f; // How much weight affects gravity
 
         [Header("References")]
         [SerializeField] private CharacterController characterController;
-        [SerializeField] private Animator animator;
+        [SerializeField] private PlayerNetworkAnimator networkAnimator;
         #endregion
 
         #region Private Fields
         private Vector3 _moveDirection;
         private float _verticalVelocity;
         private UnityEngine.Camera _mainCamera;
-        private bool _wasGrounded;
-
         private const float Gravity = 9.8f;
+        private float _currentWeight;
+        private bool _isGrounded;
+        private Vector3 _lastPosition;
+        private Vector2 _currentMovement;
+        private bool _currentSprint;
+        private Vector2 _smoothedMovement;
+        private float _movementSmoothSpeed = 8f; // Adjust this value to control smoothing
+        private float _lastGroundCheckTime;
+        private const float GroundCheckInterval = 0.1f; // Check ground every 100ms
+        private const float GroundCheckRadius = 0.2f;   // Slightly larger than character radius
         #endregion
 
         #region Unity Lifecycle
         private void Awake()
         {
-            if (characterController == null)
-                characterController = GetComponent<CharacterController>();
-
-            if (animator == null)
-                animator = GetComponent<Animator>();
-
-            _mainCamera = CameraController.Instance.MainCamera;
+            InitializeComponents();
+            InitializeWeight();
         }
         #endregion
 
         #region Network Behaviour
+        public override void Spawned()
+        {
+            NetworkedWeight = _currentWeight;
+            _lastPosition = transform.position;
+            NetworkedPosition = transform.position;
+            NetworkedRotation = transform.rotation;
+        }
+
         public override void FixedUpdateNetwork()
         {
             if (GetInput(out NetworkInputData input))
             {
-                Move(input.Movement, input.Sprint);
-                Rotate(input.Look);
-                if (input.Jump)
-                    Jump();
+                ProcessInput(input);
+            }
+        }
 
-                ApplyGravity();
-
-                characterController.Move(_moveDirection * Runner.DeltaTime);
-                UpdateAnimations(input.Movement, input.Sprint);
+        public override void Render()
+        {
+            if (Object.HasStateAuthority)
+            {
+                NetworkedPosition = transform.position;
+                NetworkedRotation = transform.rotation;
+            }
+            else
+            {
+                // Use Runner.DeltaTime for network interpolation
+                transform.SetPositionAndRotation(
+                    Vector3.Lerp(transform.position, NetworkedPosition, positionInterpolationSpeed * Runner.DeltaTime),
+                    Quaternion.Slerp(transform.rotation, NetworkedRotation, rotationInterpolationSpeed * Runner.DeltaTime)
+                );
             }
         }
         #endregion
 
         #region Private Methods
+        private void InitializeComponents()
+        {
+            _mainCamera = CameraController.Instance.MainCamera;
+        }
+
+        private void InitializeWeight()
+        {
+            _currentWeight = baseWeight;
+        }
+
+        private void ProcessInput(NetworkInputData input)
+        {
+            CheckGround();
+            Move(input.Movement, input.Sprint);
+            Rotate(input.Look);
+
+            if (input.Jump)
+            {
+                Jump();
+            }
+
+            ApplyGravity();
+            MoveCharacter();
+            UpdateNetworkedState(input);
+        }
+
+        private void CheckGround()
+        {
+            // Only perform ground check at intervals to prevent excessive checks
+            if (Time.time - _lastGroundCheckTime < GroundCheckInterval)
+                return;
+
+            _lastGroundCheckTime = Time.time;
+
+            // Get the character's bottom position
+            var bottomPosition = transform.position + Vector3.up * (characterController.radius * transform.localScale.x);
+
+            // Perform a sphere cast with a slightly larger radius for more reliable detection
+            if (Physics.SphereCast(
+                bottomPosition + Vector3.up * 0.1f,  // Start slightly above
+                characterController.radius * transform.localScale.x,  // Use character's actual radius
+                Vector3.down,                        // Check downward
+                out var hitInfo,
+                groundCheckDistance + 0.1f,         // Check distance
+                groundLayer))
+            {
+                _isGrounded = true;
+            }
+            else
+            {
+                _isGrounded = false;
+            }
+        }
+
+        private void MoveCharacter()
+        {
+            var weightAdjustedDeltaTime = Runner.DeltaTime * (1f + (NetworkedWeight / 100f) * weightInfluenceOnGravity);
+            characterController.Move(_moveDirection * weightAdjustedDeltaTime);
+        }
+
+        private void UpdateNetworkedState(NetworkInputData input)
+        {
+            _currentMovement = input.Movement;
+            _currentSprint = input.Sprint;
+            NetworkedWeight = _currentWeight;
+
+            // Update network animator with current movement state
+            networkAnimator.SetMovement(_currentMovement, _currentSprint);
+            networkAnimator.SetGrounded(_isGrounded);
+        }
+
         private void Move(Vector2 input, bool isSprinting)
         {
-            var forward = _mainCamera.transform.forward;
-            var right = _mainCamera.transform.right;
+            // Get the camera's forward and right vectors, but only on the horizontal plane
+            var cameraForward = _mainCamera.transform.forward;
+            var cameraRight = _mainCamera.transform.right;
+            cameraForward.y = 0;
+            cameraRight.y = 0;
+            cameraForward.Normalize();
+            cameraRight.Normalize();
 
-            forward.y = 0;
-            right.y = 0;
-            forward.Normalize();
-            right.Normalize();
+            // Calculate movement direction based on input and camera direction
+            var moveDirection = Vector3.zero;
 
-            var desiredDirection = forward * input.y + right * input.x;
+            // Forward/Backward movement
+            if (Mathf.Abs(input.y) > 0.01f)
+            {
+                moveDirection += cameraForward * input.y;
+            }
 
-            var currentSpeed = moveSpeed;
-            if (isSprinting)
-                currentSpeed *= sprintMultiplier;
+            // Left/Right movement
+            if (Mathf.Abs(input.x) > 0.01f)
+            {
+                moveDirection += cameraRight * input.x;
+            }
 
-            _moveDirection.x = desiredDirection.x * currentSpeed;
-            _moveDirection.z = desiredDirection.z * currentSpeed;
+            // Normalize only if we have movement
+            if (moveDirection != Vector3.zero)
+            {
+                moveDirection.Normalize();
+            }
+
+            // Calculate current speed with sprint and weight factors
+            var currentSpeed = CalculateCurrentSpeed(isSprinting);
+
+            // Apply movement direction and speed
+            _moveDirection.x = moveDirection.x * currentSpeed;
+            _moveDirection.z = moveDirection.z * currentSpeed;
+        }
+
+        private float CalculateCurrentSpeed(bool isSprinting)
+        {
+            var baseSpeed = moveSpeed * (isSprinting ? sprintMultiplier : 1f);
+            var weightFactor = 1f - (NetworkedWeight / 100f) * weightInfluenceOnSpeed;
+            return baseSpeed * weightFactor;
         }
 
         private void Rotate(Vector2 lookInput)
         {
-            if (lookInput.sqrMagnitude > 0.01f)
-            {
-                var targetAngle = Mathf.Atan2(lookInput.x, lookInput.y) * Mathf.Rad2Deg + _mainCamera.transform.eulerAngles.y;
-                var targetRotation = Quaternion.Euler(0, targetAngle, 0);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Runner.DeltaTime);
-            }
+            if (lookInput.sqrMagnitude <= 0.01f) return;
+
+            var targetAngle = CalculateTargetAngle(lookInput);
+            var targetRotation = Quaternion.Euler(0, targetAngle, 0);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Runner.DeltaTime);
+        }
+
+        private float CalculateTargetAngle(Vector2 lookInput)
+        {
+            return Mathf.Atan2(lookInput.x, lookInput.y) * Mathf.Rad2Deg + _mainCamera.transform.eulerAngles.y;
         }
 
         private void Jump()
         {
-            if (characterController.isGrounded)
-            {
-                _verticalVelocity = jumpForce;
-                if (animator != null)
-                    animator.SetTrigger(JumpHash);
-            }
+            if (!_isGrounded) return;
+
+            var weightFactor = 1f - (NetworkedWeight / 100f) * weightInfluenceOnJump;
+            _verticalVelocity = jumpForce * weightFactor;
+            _isGrounded = false; // Immediately set as not grounded when jumping
+            networkAnimator.TriggerJump();
         }
 
         private void ApplyGravity()
         {
-            if (characterController.isGrounded && _verticalVelocity < 0)
+            if (_isGrounded && _verticalVelocity < 0)
             {
-                _verticalVelocity = -0.5f;
+                _verticalVelocity = -groundOffset;
             }
             else
             {
-                _verticalVelocity -= Gravity * Runner.DeltaTime;
+                var weightFactor = 1f + (NetworkedWeight / 100f) * weightInfluenceOnGravity;
+                _verticalVelocity -= Gravity * weightFactor * Runner.DeltaTime;
             }
 
             _moveDirection.y = _verticalVelocity;
         }
 
-        private void UpdateAnimations(Vector2 movement, bool isSprinting)
+        private void OnDrawGizmos()
         {
-            if (animator == null) return;
+            // Visualize ground check for debugging
+            if (!Application.isPlaying) return;
 
-            var speed = movement.magnitude * (isSprinting ? sprintMultiplier : 1f) * movementAnimationMultiplier;
-            animator.SetFloat(SpeedHash, speed);
-            animator.SetFloat(MotionSpeedHash, isSprinting ? sprintMultiplier : 1f);
-
-            var isGrounded = characterController.isGrounded;
-            animator.SetBool(GroundedHash, isGrounded);
-
-            if (!isGrounded && _verticalVelocity < 0)
-            {
-                animator.SetBool(FreeFallHash, true);
-            }
-            else if (isGrounded)
-            {
-                animator.SetBool(FreeFallHash, false);
-            }
-
-            animator.SetBool(JumpHash, !isGrounded && _verticalVelocity > 0);
+            var bottomPosition = transform.position + Vector3.up * (characterController.radius * transform.localScale.x);
+            Gizmos.color = _isGrounded ? Color.green : Color.red;
+            Gizmos.DrawWireSphere(bottomPosition, GroundCheckRadius);
+            Gizmos.DrawLine(bottomPosition, bottomPosition + Vector3.down * (groundCheckDistance + 0.1f));
         }
         #endregion
     }
