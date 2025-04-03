@@ -109,6 +109,8 @@ MonoBehaviour:
   weightInfluenceOnGravity: 0.3
   characterController: {fileID: 7686704847729306138}
   networkAnimator: {fileID: 761436650947285565}
+  characterRenderer: {fileID: 666633401370428471}
+  usernameText: {fileID: 5921516398173404747}
 --- !u!114 &8239050238332759933
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -461,6 +463,12 @@ PrefabInstance:
 --- !u!95 &172000107465922881 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 2faa610713d3b3c439473daa55e8c60a,
+    type: 3}
+  m_PrefabInstance: {fileID: 5983459292090819792}
+  m_PrefabAsset: {fileID: 0}
+--- !u!137 &666633401370428471 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -2717395650310496025, guid: 2faa610713d3b3c439473daa55e8c60a,
     type: 3}
   m_PrefabInstance: {fileID: 5983459292090819792}
   m_PrefabAsset: {fileID: 0}

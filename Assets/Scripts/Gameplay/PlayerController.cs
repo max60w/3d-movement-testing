@@ -10,6 +10,8 @@ namespace Gameplay
         [Networked] private float NetworkedWeight { get; set; }
         [Networked] private Vector3 NetworkedPosition { get; set; }
         [Networked] private Quaternion NetworkedRotation { get; set; }
+        [Networked] private string NetworkedUsername { get; set; }
+        [Networked] private Color NetworkedColor { get; set; }
         #endregion
 
         #region Serialized Fields
@@ -39,6 +41,8 @@ namespace Gameplay
         [Header("References")]
         [SerializeField] private CharacterController characterController;
         [SerializeField] private PlayerNetworkAnimator networkAnimator;
+        [SerializeField] private Renderer characterRenderer;
+        [SerializeField] private TMPro.TextMeshPro usernameText;
         #endregion
 
         #region Private Fields
@@ -56,6 +60,8 @@ namespace Gameplay
         private float _lastGroundCheckTime;
         private const float GroundCheckInterval = 0.1f; // Check ground every 100ms
         private const float GroundCheckRadius = 0.2f;   // Slightly larger than character radius
+        private string _username = "Player";
+        private Color _color = Color.white;
         #endregion
 
         #region Unity Lifecycle
@@ -73,6 +79,11 @@ namespace Gameplay
             _lastPosition = transform.position;
             NetworkedPosition = transform.position;
             NetworkedRotation = transform.rotation;
+            NetworkedUsername = _username;
+            NetworkedColor = _color;
+
+            // Apply initial values
+            UpdateVisuals();
         }
 
         public override void FixedUpdateNetwork()
@@ -97,6 +108,33 @@ namespace Gameplay
                     Vector3.Lerp(transform.position, NetworkedPosition, positionInterpolationSpeed * Runner.DeltaTime),
                     Quaternion.Slerp(transform.rotation, NetworkedRotation, rotationInterpolationSpeed * Runner.DeltaTime)
                 );
+            }
+
+            // Update visuals based on networked values
+            UpdateVisuals();
+        }
+        #endregion
+
+        #region Public Methods
+        public void SetUsername(string username)
+        {
+            if (string.IsNullOrEmpty(username)) return;
+
+            _username = username;
+
+            if (Object.HasStateAuthority)
+            {
+                NetworkedUsername = _username;
+            }
+        }
+
+        public void SetColor(Color color)
+        {
+            _color = color;
+
+            if (Object.HasStateAuthority)
+            {
+                NetworkedColor = _color;
             }
         }
         #endregion
@@ -256,6 +294,21 @@ namespace Gameplay
             }
 
             _moveDirection.y = _verticalVelocity;
+        }
+
+        private void UpdateVisuals()
+        {
+            // Update username text
+            if (usernameText != null)
+            {
+                usernameText.text = NetworkedUsername;
+            }
+
+            // Update character color
+            if (characterRenderer != null)
+            {
+                characterRenderer.material.color = NetworkedColor;
+            }
         }
 
         private void OnDrawGizmos()

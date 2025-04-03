@@ -12,6 +12,7 @@ namespace UI
 		#region Serialized Fields
 		[Header("Windows")]
 		[SerializeField] private MainMenuWindow mainMenuWindow;
+		[SerializeField] private DebugUIWindow debugWindow;
 		#endregion
 
 		#region Private Fields
@@ -40,6 +41,11 @@ namespace UI
 			if (mainMenuWindow != null)
 			{
 				_windows[WindowType.MainMenu] = mainMenuWindow;
+			}
+
+			if (debugWindow != null)
+			{
+				_windows[WindowType.Debug] = debugWindow;
 			}
 		}
 		#endregion
@@ -74,6 +80,7 @@ namespace UI
 
 	public enum WindowType
 	{
-		MainMenu
+		MainMenu,
+		Debug
 	}
 }
