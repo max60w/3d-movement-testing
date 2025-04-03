@@ -12,8 +12,7 @@ namespace Gameplay
         private PlayerControls _controls;
         private NetworkRunner _runner;
 
-        [SerializeField]
-        private bool isActive = true;
+        [SerializeField] private bool isActive = true;
 
         private void Awake()
         {
@@ -52,31 +51,21 @@ namespace Gameplay
 
         public void OnInput(NetworkRunner runner, NetworkInput input)
         {
-            // Only provide input if this is the local player and inputs are active
-            // if (!isActive || !runner.IsPlayer || !runner.IsLocalPlayer(Object.InputAuthority))
-            //     return;
+            if (runner.LocalPlayer != NetworkManager.Instance.NetworkRunner.LocalPlayer) return;
 
-            var data = new NetworkInputData();
-
-            // Collect all input values from the Input System
-            data.Movement = _controls.Player.Move.ReadValue<Vector2>();
-            data.Look = _controls.Player.Look.ReadValue<Vector2>();
-            data.Jump = _controls.Player.Jump.IsPressed();
-            data.Sprint = _controls.Player.Sprint.IsPressed();
+            var data = new NetworkInputData
+            {
+                Movement = _controls.Player.Move.ReadValue<Vector2>(),
+                Look = _controls.Player.Look.ReadValue<Vector2>(),
+                Jump = _controls.Player.Jump.IsPressed(),
+                Sprint = _controls.Player.Sprint.IsPressed()
+            };
 
             // Send to network
             input.Set(data);
         }
 
         // Enable/disable inputs
-        public void SetInputEnabled(bool enabled)
-        {
-            isActive = enabled;
-            if (enabled)
-                _controls.Enable();
-            else
-                _controls.Disable();
-        }
 
         private void OnEnable()
         {
@@ -90,25 +79,81 @@ namespace Gameplay
 
         #region Required INetworkRunnerCallbacks Implementation
 
+        public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason)
+        {
+        }
+
+        public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason)
+        {
+        }
+
+        public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request,
+            byte[] token)
+        {
+        }
+
+        public void OnCustomAuthenticationResponse(NetworkRunner runner, Dictionary<string, object> data)
+        {
+        }
+
+        public void OnDisconnectedFromServer(NetworkRunner runner)
+        {
+        }
+
+        public void OnHostMigration(NetworkRunner runner, HostMigrationToken hostMigrationToken)
+        {
+        }
+
+        public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input)
+        {
+        }
+
         public void OnConnectedToServer(NetworkRunner runner) { }
-        public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason) { }
-        public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason) { }
-        public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token) { }
-        public void OnCustomAuthenticationResponse(NetworkRunner runner, Dictionary<string, object> data) { }
-        public void OnDisconnectedFromServer(NetworkRunner runner) { }
-        public void OnHostMigration(NetworkRunner runner, HostMigrationToken hostMigrationToken) { }
-        public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input) { }
-        public void OnObjectExitAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
-        public void OnObjectEnterAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
-        public void OnPlayerJoined(NetworkRunner runner, PlayerRef player) { }
-        public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) { }
-        public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ArraySegment<byte> data) { }
-        public void OnSceneLoadDone(NetworkRunner runner) { }
-        public void OnSceneLoadStart(NetworkRunner runner) { }
-        public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList) { }
-        public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason) { }
-        public void OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message) { }
-        public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ReliableKey key, ArraySegment<byte> data) { }
+
+        public void OnObjectExitAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player)
+        {
+        }
+
+        public void OnObjectEnterAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player)
+        {
+        }
+
+        public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
+        {
+        }
+
+        public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
+        {
+        }
+
+        public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ArraySegment<byte> data)
+        {
+        }
+
+        public void OnSceneLoadDone(NetworkRunner runner)
+        {
+        }
+
+        public void OnSceneLoadStart(NetworkRunner runner)
+        {
+        }
+
+        public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList)
+        {
+        }
+
+        public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
+        {
+        }
+
+        public void OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message)
+        {
+        }
+
+        public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ReliableKey key,
+            ArraySegment<byte> data)
+        {
+        }
 
         #endregion
     }

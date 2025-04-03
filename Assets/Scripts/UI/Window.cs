@@ -5,10 +5,15 @@ namespace UI
 	public abstract class Window : MonoBehaviour
 	{
 		#region Unity Lifecycle
-		protected virtual void Awake() { }
+
+		protected virtual void Awake()
+		{
+		}
+
 		#endregion
 
 		#region Public Methods
+
 		public virtual void Show()
 		{
 			gameObject.SetActive(true);
@@ -18,6 +23,7 @@ namespace UI
 		{
 			gameObject.SetActive(false);
 		}
+
 		#endregion
 	}
 }

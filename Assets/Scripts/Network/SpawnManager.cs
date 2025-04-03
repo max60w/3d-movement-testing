@@ -8,7 +8,7 @@ namespace Network
 	{
 		#region Serialized Fields
 		[Header("Spawn Settings")]
-		[SerializeField] private Vector2 spawnAreaSize = new Vector2(10f, 10f);
+		[SerializeField] private Vector2 spawnAreaSize = new(10f, 10f);
 		[SerializeField] private float spawnHeight = 1f;
 		[SerializeField] private NetworkPrefabRef playerPrefabRef;
 		#endregion

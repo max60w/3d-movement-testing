@@ -8,32 +8,43 @@ namespace Network
 	public class NetworkManager : MonoBehaviour
 	{
 		#region Singleton
+
 		public static NetworkManager Instance { get; private set; }
 		public NetworkRunner NetworkRunner => _networkRunner;
+
 		#endregion
 
 		#region Serialized Fields
+
 		[Header("References")]
 		[SerializeField] private SpawnManager spawnManager;
+
 		#endregion
 
 		#region Public Fields
+
 		public NetworkObject LocalCharacter { get; private set; }
+
 		#endregion
 
 		#region Private Fields
+
 		private NetworkRunner _networkRunner;
 		private bool _isConnecting;
+
 		#endregion
 
 		#region Events
+
 		public event Action OnConnectionStarted;
 		public event Action OnConnectionSuccess;
 		public event Action<string> OnConnectionError;
 		public event Action OnConnectionEnded;
+
 		#endregion
 
 		#region Unity Lifecycle
+
 		private void Awake()
 		{
 			if (Instance != null && Instance != this)
@@ -57,9 +68,11 @@ namespace Network
 				Debug.LogError("SpawnManager not assigned to NetworkManager");
 			}
 		}
+
 		#endregion
 
 		#region Public Methods
+
 		public async Task<bool> ConnectToGame(GameMode gameMode, string roomId)
 		{
 			if (_isConnecting) return false;
@@ -110,6 +123,7 @@ namespace Network
 				Debug.LogError("SpawnManager not assigned to NetworkManager");
 			}
 		}
+
 		#endregion
 	}
 }

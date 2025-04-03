@@ -7,14 +7,17 @@ namespace Gameplay
     public class PlayerController : NetworkBehaviour
     {
         #region Network Variables
+
         [Networked] private float NetworkedWeight { get; set; }
         [Networked] private Vector3 NetworkedPosition { get; set; }
         [Networked] private Quaternion NetworkedRotation { get; set; }
         [Networked] private string NetworkedUsername { get; set; }
         [Networked] private Color NetworkedColor { get; set; }
+
         #endregion
 
         #region Serialized Fields
+
         [Header("Movement Settings")]
         [SerializeField] private float moveSpeed = 5f;
         [SerializeField] private float sprintMultiplier = 1.6f;
@@ -28,55 +31,58 @@ namespace Gameplay
         [SerializeField] private float movementInterpolationSpeed = 15f;
 
         [Header("Ground Settings")]
-        [SerializeField] private float groundOffset = 0.1f; // How far above the ground the player should float
-        [SerializeField] private float groundCheckDistance = 0.2f; // Distance to check for ground
-        [SerializeField] private LayerMask groundLayer = -1; // Layer mask for ground detection
+        [SerializeField] private float groundOffset = 0.1f;
+        [SerializeField] private float groundCheckDistance = 0.2f;
+        [SerializeField] private LayerMask groundLayer = -1;
 
         [Header("Weight Settings")]
-        [SerializeField] private float baseWeight = 70f; // Base weight in kg
-        [SerializeField] private float weightInfluenceOnSpeed = 0.5f; // How much weight affects movement speed
-        [SerializeField] private float weightInfluenceOnJump = 0.7f; // How much weight affects jump force
-        [SerializeField] private float weightInfluenceOnGravity = 0.3f; // How much weight affects gravity
+        [SerializeField] private float baseWeight = 70f;
+        [SerializeField] private float weightInfluenceOnSpeed = 0.5f;
+        [SerializeField] private float weightInfluenceOnJump = 0.7f;
+        [SerializeField] private float weightInfluenceOnGravity = 0.3f;
 
         [Header("References")]
         [SerializeField] private CharacterController characterController;
         [SerializeField] private PlayerNetworkAnimator networkAnimator;
         [SerializeField] private Renderer characterRenderer;
         [SerializeField] private TMPro.TextMeshPro usernameText;
+
         #endregion
 
         #region Private Fields
+
         private Vector3 _moveDirection;
         private float _verticalVelocity;
         private UnityEngine.Camera _mainCamera;
         private const float Gravity = 9.8f;
         private float _currentWeight;
         private bool _isGrounded;
-        private Vector3 _lastPosition;
         private Vector2 _currentMovement;
         private bool _currentSprint;
         private Vector2 _smoothedMovement;
-        private float _movementSmoothSpeed = 8f; // Adjust this value to control smoothing
         private float _lastGroundCheckTime;
-        private const float GroundCheckInterval = 0.1f; // Check ground every 100ms
-        private const float GroundCheckRadius = 0.2f;   // Slightly larger than character radius
+        private const float GroundCheckInterval = 0.1f;
+        private const float GroundCheckRadius = 0.2f;
         private string _username = "Player";
         private Color _color = Color.white;
+
         #endregion
 
         #region Unity Lifecycle
+
         private void Awake()
         {
             InitializeComponents();
             InitializeWeight();
         }
+
         #endregion
 
         #region Network Behaviour
+
         public override void Spawned()
         {
             NetworkedWeight = _currentWeight;
-            _lastPosition = transform.position;
             NetworkedPosition = transform.position;
             NetworkedRotation = transform.rotation;
             NetworkedUsername = _username;
@@ -106,16 +112,19 @@ namespace Gameplay
                 // Use Runner.DeltaTime for network interpolation
                 transform.SetPositionAndRotation(
                     Vector3.Lerp(transform.position, NetworkedPosition, positionInterpolationSpeed * Runner.DeltaTime),
-                    Quaternion.Slerp(transform.rotation, NetworkedRotation, rotationInterpolationSpeed * Runner.DeltaTime)
+                    Quaternion.Slerp(transform.rotation, NetworkedRotation,
+                        rotationInterpolationSpeed * Runner.DeltaTime)
                 );
             }
 
             // Update visuals based on networked values
             UpdateVisuals();
         }
+
         #endregion
 
         #region Public Methods
+
         public void SetUsername(string username)
         {
             if (string.IsNullOrEmpty(username)) return;
@@ -137,9 +146,11 @@ namespace Gameplay
                 NetworkedColor = _color;
             }
         }
+
         #endregion
 
         #region Private Methods
+
         private void InitializeComponents()
         {
             _mainCamera = CameraController.Instance.MainCamera;
@@ -175,23 +186,17 @@ namespace Gameplay
             _lastGroundCheckTime = Time.time;
 
             // Get the character's bottom position
-            var bottomPosition = transform.position + Vector3.up * (characterController.radius * transform.localScale.x);
+            var bottomPosition =
+                transform.position + Vector3.up * (characterController.radius * transform.localScale.x);
 
             // Perform a sphere cast with a slightly larger radius for more reliable detection
-            if (Physics.SphereCast(
-                bottomPosition + Vector3.up * 0.1f,  // Start slightly above
-                characterController.radius * transform.localScale.x,  // Use character's actual radius
-                Vector3.down,                        // Check downward
-                out var hitInfo,
-                groundCheckDistance + 0.1f,         // Check distance
-                groundLayer))
-            {
-                _isGrounded = true;
-            }
-            else
-            {
-                _isGrounded = false;
-            }
+            _isGrounded = Physics.SphereCast(
+                bottomPosition + Vector3.up * 0.1f,
+                characterController.radius * transform.localScale.x,
+                Vector3.down,
+                out _,
+                groundCheckDistance + 0.1f,
+                groundLayer);
         }
 
         private void MoveCharacter()
@@ -316,11 +321,13 @@ namespace Gameplay
             // Visualize ground check for debugging
             if (!Application.isPlaying) return;
 
-            var bottomPosition = transform.position + Vector3.up * (characterController.radius * transform.localScale.x);
+            var bottomPosition =
+                transform.position + Vector3.up * (characterController.radius * transform.localScale.x);
             Gizmos.color = _isGrounded ? Color.green : Color.red;
             Gizmos.DrawWireSphere(bottomPosition, GroundCheckRadius);
             Gizmos.DrawLine(bottomPosition, bottomPosition + Vector3.down * (groundCheckDistance + 0.1f));
         }
+
         #endregion
     }
 }

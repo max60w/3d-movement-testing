@@ -155,13 +155,13 @@ namespace UI
 				return;
 			}
 
-			string roomId = roomIdInput != null ? roomIdInput.text : defaultRoomId;
+			var roomId = roomIdInput != null ? roomIdInput.text : defaultRoomId;
 			if (string.IsNullOrEmpty(roomId))
 			{
 				roomId = defaultRoomId;
 			}
 
-			bool success = await _networkManager.ConnectToGame(gameMode, roomId);
+			var success = await _networkManager.ConnectToGame(gameMode, roomId);
 			if (!success)
 			{
 				Debug.Log("Failed to connect to game");

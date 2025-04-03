@@ -6,6 +6,7 @@ namespace UI
 	public class UIController : MonoBehaviour
 	{
 		#region Unity Lifecycle
+
 		private void Start()
 		{
 			// Show main menu window when the game starts
@@ -26,14 +27,17 @@ namespace UI
 				NetworkManager.Instance.OnConnectionSuccess -= OnConnectionSuccess;
 			}
 		}
+
 		#endregion
 
 		#region Event Handlers
+
 		private void OnConnectionSuccess()
 		{
 			// Show debug window when connected to the game
 			UIManager.Instance.ShowWindow(WindowType.Debug);
 		}
+
 		#endregion
 	}
 }

@@ -6,20 +6,27 @@ namespace UI
 	public class UIManager : MonoBehaviour
 	{
 		#region Singleton
+
 		public static UIManager Instance { get; private set; }
+
 		#endregion
 
 		#region Serialized Fields
+
 		[Header("Windows")]
 		[SerializeField] private MainMenuWindow mainMenuWindow;
 		[SerializeField] private DebugUIWindow debugWindow;
+
 		#endregion
 
 		#region Private Fields
+
 		private readonly Dictionary<WindowType, Window> _windows = new();
+
 		#endregion
 
 		#region Unity Lifecycle
+
 		private void Awake()
 		{
 			if (Instance != null && Instance != this)
@@ -33,9 +40,11 @@ namespace UI
 
 			InitializeWindows();
 		}
+
 		#endregion
 
 		#region Private Methods
+
 		private void InitializeWindows()
 		{
 			if (mainMenuWindow != null)
@@ -48,9 +57,11 @@ namespace UI
 				_windows[WindowType.Debug] = debugWindow;
 			}
 		}
+
 		#endregion
 
 		#region Public Methods
+
 		public void ShowWindow(WindowType windowType)
 		{
 			if (_windows.TryGetValue(windowType, out var window))
@@ -73,8 +84,10 @@ namespace UI
 			{
 				return typedWindow;
 			}
+
 			return null;
 		}
+
 		#endregion
 	}
 

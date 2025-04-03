@@ -9,8 +9,10 @@ namespace UI
 	public class DebugUIWindow : Window
 	{
 		#region Serialized Fields
+
 		[Header("Username Settings")]
 		[SerializeField] private TMP_InputField usernameField;
+
 		[SerializeField] private Button updateUsernameButton;
 
 		[Header("Color Settings")]
@@ -21,14 +23,18 @@ namespace UI
 		[SerializeField] private Button expandButton;
 		[SerializeField] private CanvasGroup expandedContentGroup;
 		[SerializeField] private CanvasGroup collapsedContentGroup;
+
 		#endregion
 
 		#region Private Fields
-		private bool isCollapsed;
-		private PlayerController localPlayer;
+
+		private bool _isCollapsed;
+		private PlayerController _localPlayer;
+
 		#endregion
 
 		#region Unity Lifecycle
+
 		protected override void Awake()
 		{
 			base.Awake();
@@ -38,14 +44,17 @@ namespace UI
 		private void Update()
 		{
 			// Try to find the local player if we don't have it yet
-			if (localPlayer == null && NetworkManager.Instance != null && NetworkManager.Instance.LocalCharacter != null)
+			if (_localPlayer == null && NetworkManager.Instance != null &&
+			    NetworkManager.Instance.LocalCharacter != null)
 			{
-				localPlayer = NetworkManager.Instance.LocalCharacter.GetComponent<PlayerController>();
+				_localPlayer = NetworkManager.Instance.LocalCharacter.GetComponent<PlayerController>();
 			}
 		}
+
 		#endregion
 
 		#region Private Methods
+
 		private void InitializeUI()
 		{
 			updateUsernameButton.onClick.AddListener(UpdateUsername);
@@ -54,7 +63,7 @@ namespace UI
 			expandButton.onClick.AddListener(ExpandWindow);
 
 			// Set initial state to expanded
-			isCollapsed = false;
+			_isCollapsed = false;
 			UpdateWindowState();
 		}
 
@@ -62,48 +71,49 @@ namespace UI
 		{
 			if (string.IsNullOrEmpty(usernameField.text)) return;
 
-			if (localPlayer != null)
+			if (_localPlayer != null)
 			{
-				localPlayer.SetUsername(usernameField.text);
+				_localPlayer.SetUsername(usernameField.text);
 			}
 		}
 
 		private void UpdateCharacterColor(Color color)
 		{
-			if (localPlayer != null)
+			if (_localPlayer != null)
 			{
-				localPlayer.SetColor(color);
+				_localPlayer.SetColor(color);
 			}
 		}
 
 		private void CollapseWindow()
 		{
-			isCollapsed = true;
+			_isCollapsed = true;
 			UpdateWindowState();
 		}
 
 		private void ExpandWindow()
 		{
-			isCollapsed = false;
+			_isCollapsed = false;
 			UpdateWindowState();
 		}
 
 		private void UpdateWindowState()
 		{
 			// Update expanded content
-			expandedContentGroup.alpha = isCollapsed ? 0f : 1f;
-			expandedContentGroup.interactable = !isCollapsed;
-			expandedContentGroup.blocksRaycasts = !isCollapsed;
+			expandedContentGroup.alpha = _isCollapsed ? 0f : 1f;
+			expandedContentGroup.interactable = !_isCollapsed;
+			expandedContentGroup.blocksRaycasts = !_isCollapsed;
 
 			// Update collapsed content
-			collapsedContentGroup.alpha = isCollapsed ? 1f : 0f;
-			collapsedContentGroup.interactable = isCollapsed;
-			collapsedContentGroup.blocksRaycasts = isCollapsed;
+			collapsedContentGroup.alpha = _isCollapsed ? 1f : 0f;
+			collapsedContentGroup.interactable = _isCollapsed;
+			collapsedContentGroup.blocksRaycasts = _isCollapsed;
 
 			// Update button visibility
-			collapseButton.gameObject.SetActive(!isCollapsed);
-			expandButton.gameObject.SetActive(isCollapsed);
+			collapseButton.gameObject.SetActive(!_isCollapsed);
+			expandButton.gameObject.SetActive(_isCollapsed);
 		}
+
 		#endregion
 	}
 }
