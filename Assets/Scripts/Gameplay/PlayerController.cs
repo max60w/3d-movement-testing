@@ -24,13 +24,7 @@ namespace Gameplay
         [SerializeField] private float sprintMultiplier = 1.6f;
         [SerializeField] private float rotationSpeed = 10f;
         [SerializeField] private float jumpForce = 5f;
-        [SerializeField] private float movementAnimationMultiplier = 2f;
         [SerializeField] private float decelerationSpeed = 15f;
-
-        [Header("Interpolation Settings")]
-        [SerializeField] private float positionInterpolationSpeed = 15f;
-        [SerializeField] private float rotationInterpolationSpeed = 15f;
-        [SerializeField] private float movementInterpolationSpeed = 15f;
 
         [Header("Ground Settings")]
         [SerializeField] private float groundOffset = 0.1f;
@@ -84,15 +78,24 @@ namespace Gameplay
 
         public override void Spawned()
         {
-            NetworkedWeight = _currentWeight;
-            NetworkedPosition = transform.position;
-            NetworkedRotation = transform.rotation;
-            NetworkedUsername = _username;
-            NetworkedColor = _color;
-            NetworkedVelocity = Vector3.zero;
+            if (Object.HasStateAuthority)
+            {
+                NetworkedWeight = _currentWeight;
+                NetworkedPosition = transform.position;
+                NetworkedRotation = transform.rotation;
+                NetworkedUsername = _username;
+                NetworkedColor = _color;
+                NetworkedVelocity = Vector3.zero;
+            }
 
             // Apply initial values
             UpdateVisuals();
+
+            if (!Object.HasStateAuthority)
+            {
+                _username = NetworkedUsername;
+                _color = NetworkedColor;
+            }
         }
 
         public override void FixedUpdateNetwork()
