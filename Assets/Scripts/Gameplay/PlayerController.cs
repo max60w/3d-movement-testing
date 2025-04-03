@@ -13,6 +13,7 @@ namespace Gameplay
         [Networked] private Quaternion NetworkedRotation { get; set; }
         [Networked] private string NetworkedUsername { get; set; }
         [Networked] private Color NetworkedColor { get; set; }
+        [Networked] private Vector3 NetworkedVelocity { get; set; }
 
         #endregion
 
@@ -24,6 +25,7 @@ namespace Gameplay
         [SerializeField] private float rotationSpeed = 10f;
         [SerializeField] private float jumpForce = 5f;
         [SerializeField] private float movementAnimationMultiplier = 2f;
+        [SerializeField] private float decelerationSpeed = 15f;
 
         [Header("Interpolation Settings")]
         [SerializeField] private float positionInterpolationSpeed = 15f;
@@ -87,6 +89,7 @@ namespace Gameplay
             NetworkedRotation = transform.rotation;
             NetworkedUsername = _username;
             NetworkedColor = _color;
+            NetworkedVelocity = Vector3.zero;
 
             // Apply initial values
             UpdateVisuals();
@@ -106,15 +109,12 @@ namespace Gameplay
             {
                 NetworkedPosition = transform.position;
                 NetworkedRotation = transform.rotation;
+                NetworkedVelocity = _moveDirection;
             }
             else
             {
-                // Use Runner.DeltaTime for network interpolation
-                transform.SetPositionAndRotation(
-                    Vector3.Lerp(transform.position, NetworkedPosition, positionInterpolationSpeed * Runner.DeltaTime),
-                    Quaternion.Slerp(transform.rotation, NetworkedRotation,
-                        rotationInterpolationSpeed * Runner.DeltaTime)
-                );
+                transform.position = NetworkedPosition;
+                transform.rotation = NetworkedRotation;
             }
 
             // Update visuals based on networked values
@@ -201,6 +201,8 @@ namespace Gameplay
 
         private void MoveCharacter()
         {
+            if (!Object.HasStateAuthority) return;
+
             var weightAdjustedDeltaTime = Runner.DeltaTime * (1f + (NetworkedWeight / 100f) * weightInfluenceOnGravity);
             characterController.Move(_moveDirection * weightAdjustedDeltaTime);
         }
@@ -251,8 +253,16 @@ namespace Gameplay
             var currentSpeed = CalculateCurrentSpeed(isSprinting);
 
             // Apply movement direction and speed
-            _moveDirection.x = moveDirection.x * currentSpeed;
-            _moveDirection.z = moveDirection.z * currentSpeed;
+            if (moveDirection != Vector3.zero)
+            {
+                _moveDirection.x = moveDirection.x * currentSpeed;
+                _moveDirection.z = moveDirection.z * currentSpeed;
+            }
+            else
+            {
+                _moveDirection.x = Mathf.MoveTowards(_moveDirection.x, 0, decelerationSpeed * Runner.DeltaTime);
+                _moveDirection.z = Mathf.MoveTowards(_moveDirection.z, 0, decelerationSpeed * Runner.DeltaTime);
+            }
         }
 
         private float CalculateCurrentSpeed(bool isSprinting)
