@@ -15,9 +15,11 @@ namespace UI
 		[SerializeField] private GameObject errorUI;
 		[SerializeField] private TMP_Text errorText;
 		[SerializeField] private Button joinButton;
+		[SerializeField] private TMP_InputField roomIdInput;
 
 		[Header("Game Settings")]
 		[SerializeField] private GameMode gameMode = GameMode.Shared;
+		[SerializeField] private string defaultRoomId = "Test";
 		#endregion
 
 		#region Private Fields
@@ -34,6 +36,12 @@ namespace UI
 			if (joinButton != null)
 			{
 				joinButton.onClick.AddListener(HandleJoinClick);
+			}
+
+			// Setup room ID input
+			if (roomIdInput != null)
+			{
+				roomIdInput.text = defaultRoomId;
 			}
 
 			// Start waiting for NetworkManager
@@ -147,7 +155,13 @@ namespace UI
 				return;
 			}
 
-			bool success = await _networkManager.ConnectToGame(gameMode);
+			string roomId = roomIdInput != null ? roomIdInput.text : defaultRoomId;
+			if (string.IsNullOrEmpty(roomId))
+			{
+				roomId = defaultRoomId;
+			}
+
+			bool success = await _networkManager.ConnectToGame(gameMode, roomId);
 			if (!success)
 			{
 				Debug.Log("Failed to connect to game");

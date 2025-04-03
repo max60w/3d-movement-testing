@@ -13,15 +13,11 @@ namespace Network
 		#endregion
 
 		#region Serialized Fields
-		[Header("Network Settings")]
-		[SerializeField] private string sessionName = "TestRoom";
-
 		[Header("References")]
 		[SerializeField] private SpawnManager spawnManager;
 		#endregion
 
 		#region Public Fields
-
 		public NetworkObject LocalCharacter { get; private set; }
 		#endregion
 
@@ -64,7 +60,7 @@ namespace Network
 		#endregion
 
 		#region Public Methods
-		public async Task<bool> ConnectToGame(GameMode gameMode)
+		public async Task<bool> ConnectToGame(GameMode gameMode, string roomId)
 		{
 			if (_isConnecting) return false;
 			_isConnecting = true;
@@ -77,7 +73,7 @@ namespace Network
 				var result = await _networkRunner.StartGame(new StartGameArgs()
 				{
 					GameMode = gameMode,
-					SessionName = sessionName
+					SessionName = roomId
 				});
 
 				if (result.Ok)
@@ -113,12 +109,6 @@ namespace Network
 			{
 				Debug.LogError("SpawnManager not assigned to NetworkManager");
 			}
-		}
-
-		public async void RetryConnection(GameMode gameMode)
-		{
-			OnConnectionError?.Invoke(null); // Clear any previous error
-			await ConnectToGame(gameMode);
 		}
 		#endregion
 	}
